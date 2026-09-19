@@ -13,10 +13,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // Proxy hacia Laravel cuando se ejecuta con `php artisan serve`.
+    // Proxy hacia la API Laravel servida por Laragon.
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://edificios-api.test',
         changeOrigin: true,
       },
     },
