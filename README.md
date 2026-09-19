@@ -54,6 +54,8 @@ Cada módulo puede tener `api`, `hooks`, `components` y `types`. Los componentes
 
 Requisitos: Node.js 18 o superior, npm y el backend Laravel disponible.
 
+Las dependencias se instalan una sola vez, no cada vez que inicias una sesión.
+
 ```bash
 npm install
 ```
@@ -70,10 +72,10 @@ En macOS o Linux:
 cp .env.example .env
 ```
 
-Configura la URL de la API en `.env`:
+Configura la URL de la API en `.env` cuando uses `php artisan serve`:
 
 ```env
-VITE_API_URL=http://edificios-api.test/api
+VITE_API_URL=http://localhost:8000/api
 ```
 
 Inicia el proyecto:
@@ -83,6 +85,19 @@ npm run dev
 ```
 
 Abre `http://localhost:5173`.
+
+## Inicio diario
+
+Primero inicia el backend en una terminal y déjalo abierto. Luego abre otra
+terminal para el frontend:
+
+```powershell
+cd F:\laragon\www\edificios-frontend\edificios-frontend
+npm run dev
+```
+
+Visita `http://localhost:5173`. Solo vuelve a ejecutar `npm install` si borraste
+`node_modules`, cambió `package-lock.json` o acabas de clonar el proyecto.
 
 ## Comandos
 
