@@ -1,0 +1,21 @@
+import { useState } from 'react'
+import { Card, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { useCondominioStore } from '@/store/condominio-store'
+import { gastosApi } from '../api/gastos-api'
+import { useCrearPeriodo, useEmitirCargos, useGastos, useRegistrarPago } from '../hooks/use-gastos'
+
+const money = (value: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(value)
+
+export function GastosList() {
+  const condominioId = useCondominioStore((state) => state.condominioActivoId)
+  const { data: periodos, isLoading } = useGastos()
+  const crear = useCrearPeriodo(); const emitir = useEmitirCargos(); const pagar = useRegistrarPago()
+  const [form, setForm] = useState({ periodo: '', totalGastos: '' })
+  const [selected, setSelected] = useState<number | null>(null)
+  const [detail, setDetail] = useState<Awaited<ReturnType<typeof gastosApi.detalle>> | null>(null)
+  const [amount, setAmount] = useState('')
+  const create = async () => { if (!condominioId) return; const periodo = await crear.mutateAsync({ condominioId, periodo: form.periodo, totalGastos: Number(form.totalGastos) }); await emitir.mutateAsync({ id: periodo.id, cargos: [{ unidad_id: 0, monto: 0, vencimiento: form.periodo }] }); setForm({ periodo: '', totalGastos: '' }) }
+  const open = async (id: number) => { setSelected(id); setDetail(await gastosApi.detalle(id)) }
+  return <div className="space-y-5"><div><p className="text-sm font-medium text-amber-600">Finanzas</p><h1 className="mt-1 text-2xl font-semibold text-ink-900">Gastos comunes</h1><p className="mt-1 text-sm text-ink-500">Emite períodos, distribuye cargos y registra pagos.</p></div><Card><CardTitle>Nuevo período</CardTitle><div className="mt-4 grid gap-3 sm:grid-cols-3"><label className="text-sm text-ink-600">Mes<input required type="date" value={form.periodo} onChange={(event) => setForm({ ...form, periodo: event.target.value })} className="mt-1 w-full rounded-md border border-ink-200 px-3 py-2" /></label><label className="text-sm text-ink-600">Total de gastos<input required min="0" type="number" value={form.totalGastos} onChange={(event) => setForm({ ...form, totalGastos: event.target.value })} className="mt-1 w-full rounded-md border border-ink-200 px-3 py-2" /></label><div className="flex items-end"><Button disabled={crear.isPending || emitir.isPending} onClick={create}>Emitir y distribuir</Button></div></div><p className="mt-2 text-xs text-ink-400">La primera versión distribuye el total en partes iguales entre las unidades. Luego podrás editar cada cargo.</p></Card>{isLoading && <p className="text-sm text-ink-500">Cargando períodos...</p>}<div className="grid gap-3">{periodos?.map((periodo) => <Card key={periodo.id} className="flex items-center justify-between"><div><p className="font-semibold text-ink-900">{periodo.periodo}</p><p className="text-sm text-ink-500">Total {money(Number(periodo.total_gastos))} · {periodo.cargos_count} cargos · {periodo.estado}</p></div><Button variant="secondary" onClick={() => open(periodo.id)}>Ver cargos</Button></Card>)}</div>{selected && detail && <Card><div className="flex items-center justify-between"><CardTitle>Cargos del período {detail.periodo}</CardTitle><Button variant="secondary" onClick={() => { setSelected(null); setDetail(null) }}>Cerrar</Button></div><div className="mt-4 space-y-2">{detail.cargos.map((cargo) => <div key={cargo.id} className="flex flex-col gap-2 border-t border-ink-100 pt-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium text-ink-800">Unidad {cargo.unidad?.torre ? `${cargo.unidad.torre} - ` : ''}{cargo.unidad?.numero ?? cargo.unidad_id}</p><p className="text-sm text-ink-500">Cargo {money(Number(cargo.monto))} · Pagado {money(Number(cargo.pagado))} · Vence {cargo.vencimiento ?? 'sin fecha'}</p></div><div className="flex gap-2"><input type="number" min="0" max={cargo.monto} placeholder="Pago" value={amount} onChange={(event) => setAmount(event.target.value)} className="w-28 rounded-md border border-ink-200 px-2 py-1 text-sm" /><Button onClick={() => pagar.mutate({ id: cargo.id, pagado: Number(amount) })}>Registrar pago</Button></div></div>)}</div></Card>}</div>
+}
